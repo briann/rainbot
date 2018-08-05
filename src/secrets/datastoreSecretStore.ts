@@ -11,7 +11,7 @@ export class DatastoreSecretStore implements ISecretStore {
 
     public async getSecret(secretName: string) {
         if (secretName == "") {
-            throw new Error("Empty secret");
+            throw new Error("No secret specified.");
         }
         if (this.secretCache.has(secretName)) {
             return this.secretCache.get(secretName);
@@ -21,7 +21,7 @@ export class DatastoreSecretStore implements ISecretStore {
         const dataFetch = await this.datastoreClient.get(key);
         const result = dataFetch[0];
         if (result === undefined) {
-            throw new Error("No secret");
+            throw new Error("No secret found.");
         }
         const secretValue = (result as ISecret).secret;
         this.secretCache.set(secretName, secretValue);
