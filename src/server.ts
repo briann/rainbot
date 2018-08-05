@@ -4,24 +4,38 @@ import * as bodyParser from "koa-bodyparser";
 import * as views from "koa-views";
 import * as path from "path";
 import * as Datastore from "@google-cloud/datastore";
+import * as logger from "koa-logger";
 import RequestHandlers from "./requestHandlers";
 import { DatastoreSecretStore } from "./secrets/datastoreSecretStore";
+import SlackHandlers from "./slackHandlers";
 
 const datastoreClient = new Datastore({});
 const datastoreSecretStore = new DatastoreSecretStore(datastoreClient);
 
 // Init & config server.
 const app = new Koa();
+app.use(logger());
+app.use(async (ctx, next) => {
+    try {
+        await next();
+    } catch (err) {
+        ctx.status = err.status || 500;
+        ctx.app.emit('error', err);
+    }
+});
+app.on('error', (err) => { console.log(err); });
 app.use(bodyParser());
 app.use(views(path.join(__dirname, '/views'), { extension: 'ejs' }));
 
 // Set up routes.
 const router = new Router();
 const requestHandlers = new RequestHandlers(datastoreSecretStore);
+const slackHandlers = new SlackHandlers(datastoreSecretStore);
 router.get("/", async (ctx) => {
     await ctx.render("index");
 });
 router.get("/weather", requestHandlers.searchStringGetHandler);
+router.post("/slack-events", slackHandlers.eventApiPostHandler);
 app.use(router.routes());
 
 // Start listening.
