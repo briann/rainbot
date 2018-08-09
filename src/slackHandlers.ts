@@ -14,6 +14,8 @@ export default class SlackHandlers {
             throw new Error("Invalid request, signature failed.");
         }
 
+        // TODO: Check for X-Slack-Retry-* and handle appropriately.
+
         const requestBody = context.request.body;
         if (isEventChallengeMessage(requestBody)) {
             this.handleEventsChallengePost(context, requestBody);
