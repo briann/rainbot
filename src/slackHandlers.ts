@@ -1,7 +1,7 @@
 import { createHmac } from "crypto";
 import { IRouterContext } from "koa-router";
 import ISecretStore from "./secrets/secretStore";
-import { isEventsChallengeRequest, IEventsChallengeRequest } from "./apis/slack";
+import { isEventChallengeMessage, IEventChallengeMessage } from "./apis/slack";
 
 const REPLAY_ATTACK_THRESHOLD_MS = 5 * 60 * 1000;
 
@@ -15,15 +15,15 @@ export default class SlackHandlers {
         }
 
         const requestBody = context.request.body;
-        if (isEventsChallengeRequest(requestBody)) {
+        if (isEventChallengeMessage(requestBody)) {
             this.handleEventsChallengePost(context, requestBody);
         } else {
-            console.log(context.request);
+            console.log(context.request.body);
             throw new Error("Unknown Slack Event POST!");
         }
     }
 
-    private handleEventsChallengePost(context: IRouterContext, requestBody: IEventsChallengeRequest) {
+    private handleEventsChallengePost(context: IRouterContext, requestBody: IEventChallengeMessage) {
         context.response.body = requestBody.challenge;
     }
 
