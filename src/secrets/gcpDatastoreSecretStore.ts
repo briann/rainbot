@@ -2,7 +2,7 @@ import * as Datastore from "@google-cloud/datastore";
 import ISecret from "./secret";
 import ISecretStore from "./secretStore";
 
-export class DatastoreSecretStore implements ISecretStore {
+export class GCPDatastoreSecretStore implements ISecretStore {
 
     // TODO: Add eviction.
     private secretCache: Map<string, string> = new Map<string, string>();

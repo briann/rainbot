@@ -3,9 +3,9 @@ import * as Router from "koa-router";
 import * as bodyParser from "koa-bodyparser";
 import * as views from "koa-views";
 import * as path from "path";
-import * as Datastore from "@google-cloud/datastore";
+import * as GCPDatastore from "@google-cloud/datastore";
 import * as logger from "koa-logger";
-import { DatastoreSecretStore } from "./secrets/datastoreSecretStore";
+import { GCPDatastoreSecretStore } from "./secrets/gcpDatastoreSecretStore";
 import SlackHandlers from "./slackHandlers";
 import { EventEmitter } from "events";
 import { registerListeners } from "./slackEventListeners";
@@ -13,8 +13,14 @@ import { WebClient } from "@slack/client";
 import { GmapsDarkSkyWeatherService } from "./weatherService";
 
 async function main() {
-    const datastoreClient = new Datastore({});
-    const secretStore = new DatastoreSecretStore(datastoreClient);
+    const ENV = process.env.NODE_ENV || "development";
+    const gcpDatastore = new GCPDatastore({
+        namespace: process.env.GCP_DATASTORE_NAMESPACE || ENV
+    });
+    const secretStore = new GCPDatastoreSecretStore(gcpDatastore);
+    const slackToken = await secretStore.getSecret("SlackTestTeamToken");
+    const slackClient = new WebClient(slackToken);
+    const weatherService = new GmapsDarkSkyWeatherService(secretStore);
 
     // Init & config server.
     const app = new Koa();
@@ -30,12 +36,6 @@ async function main() {
     app.on('error', (err) => { console.log(err); });
     app.use(bodyParser());
     app.use(views(path.join(__dirname, '/views'), { extension: 'ejs' }));
-
-    // One Slack Web API client for the entire app.
-    const slackToken = await secretStore.getSecret("SlackTestTeamToken");
-    const slackClient = new WebClient(slackToken);
-
-    const weatherService = new GmapsDarkSkyWeatherService(secretStore);
 
     // Set up Slack event processing.
     const eventEmitter = new EventEmitter();
@@ -53,7 +53,7 @@ async function main() {
     // Start listening.
     const PORT = process.env.PORT || 3000;
     app.listen(PORT);
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server started on port ${PORT} in ${ENV} mode.`);
 }
 
 main();
