@@ -71,7 +71,7 @@ export interface ForecastResponse {
     latitude: string;
     longitude: string;
     timezone: string;
-    currently?: DataPoint;
+    currently?: CurrentDataPoint;
     minutely?: DataBlock<MinutelyDataPoint>;
     hourly?: DataBlock<HourlyDataPoint>;
     daily?: DataBlock<DailyDataPoint>;
