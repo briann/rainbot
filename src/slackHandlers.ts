@@ -1,12 +1,22 @@
 import { createHmac } from "crypto";
 import { IRouterContext } from "koa-router";
 import ISecretStore from "./secrets/secretStore";
-import { isEventChallengeMessage, IEventChallengeMessage } from "./apis/slack";
+import {
+    IEventChallengeMessage,
+    IEventWrapper,
+    isEventChallengeMessage,
+    isEventRateLimitRequest,
+    isEventWrapper,
+    isMessageEvent,
+    IEventMetadata
+} from "./apis/slack";
+import SlackError from "./slackError";
+import { EventEmitter } from "events";
 
 const REPLAY_ATTACK_THRESHOLD_MS = 5 * 60 * 1000;
 
 export default class SlackHandlers {
-    constructor(private secretStore: ISecretStore) {}
+    constructor(private secretStore: ISecretStore, private eventEmitter: EventEmitter) {}
 
     public eventApiPostHandler = async (context: IRouterContext) => {
         const isValidRequest = await this.isValidRequestFromSlack(context);
@@ -14,14 +24,44 @@ export default class SlackHandlers {
             throw new Error("Invalid request, signature failed.");
         }
 
-        // TODO: Check for X-Slack-Retry-* and handle appropriately.
+        // TODO: Handle retries appropriately.
+        if (context.request.header["x-slack-retry-num"]) {
+            const retryCount = context.request.header["x-slack-retry-num"];
+            const retryReason = context.request.header["x-slack-retry-reason"];
+            console.log(`Received a retry request (retry #${retryCount} due to [${retryReason}])`);
+            console.log(context.request.body);
+            context.response.header["X-Slack-No-Retry"] = 1;
+            throw new SlackError("Can't handle retries.");
+        }
 
         const requestBody = context.request.body;
         if (isEventChallengeMessage(requestBody)) {
             this.handleEventsChallengePost(context, requestBody);
+        } else if (isEventRateLimitRequest(requestBody)) {
+            throw new SlackError("Can't handle rate limiting.");
+        } else if (isEventWrapper(requestBody)) {
+            setImmediate(() => {
+                this.dispatchEvent(requestBody);
+            });
         } else {
             console.log(context.request.body);
-            throw new Error("Unknown Slack Event POST!");
+            throw new SlackError("Unknown Slack event request!");
+        }
+        context.response.status = 200;
+    }
+
+    private dispatchEvent(wrapper: IEventWrapper) {
+        const event = wrapper.event;
+        const metadata: IEventMetadata = {
+            eventId: wrapper.event_id,
+            eventTimeSec: wrapper.event_time,
+            teamId: wrapper.team_id
+        };
+        if (isMessageEvent(event)) {
+            const messageType = `${event.type}.${event.channel_type}`;
+            this.eventEmitter.emit(messageType, event, metadata);
+        } else {
+            this.eventEmitter.emit(event.type, event, metadata);
         }
     }
 

@@ -4,6 +4,7 @@
   "main": "server.js",
   "dependencies": {
     "@google-cloud/datastore": "^1.4.1",
+    "@slack/client": "^4.4.0",
     "ejs": "^2.6.1",
     "koa": "^2.5.2",
     "koa-bodyparser": "^4.2.1",
