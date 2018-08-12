@@ -14,6 +14,7 @@ import { GmapsDarkSkyWeatherService } from "./weatherService";
 
 async function main() {
     const ENV = process.env.NODE_ENV || "development";
+    console.log(`Starting server in ${ENV} mode...`);
     const gcpDatastore = new GCPDatastore({
         namespace: process.env.GCP_DATASTORE_NAMESPACE || ENV
     });
@@ -53,7 +54,7 @@ async function main() {
     // Start listening.
     const PORT = process.env.PORT || 3000;
     app.listen(PORT);
-    console.log(`Server started on port ${PORT} in ${ENV} mode.`);
+    console.log(`Server running on port ${PORT}.`);
 }
 
 main();
