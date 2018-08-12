@@ -68,6 +68,6 @@ export function isMessageEvent(json: Object): json is IMessageEvent {
     return (json as IMessageEvent).type === "message";
 }
 
-export function isMessageFromApp(event: IMessageEvent): boolean{
+export function isMessageFromBot(event: IMessageEvent): boolean{
     return event.bot_id !== undefined;
 }

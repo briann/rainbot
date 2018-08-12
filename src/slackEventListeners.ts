@@ -2,7 +2,7 @@ import {
     IEvent,
     IEventMetadata,
     IMessageEvent,
-    isMessageFromApp
+    isMessageFromBot
 } from "./apis/slack";
 import { EventEmitter } from "events";
 import { WebClient } from "@slack/client";
@@ -19,7 +19,7 @@ class MessageAppHomeListener extends SlackEventListener {
 
     public listener = async (event: IMessageEvent) => {
         console.log(event);
-        if (isMessageFromApp(event)) {
+        if (isMessageFromBot(event)) {
             return;
         }
         try {
