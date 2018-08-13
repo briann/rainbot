@@ -71,3 +71,23 @@ export function isMessageEvent(json: Object): json is IMessageEvent {
 export function isMessageFromBot(event: IMessageEvent): boolean{
     return event.bot_id !== undefined;
 }
+
+export interface IAuthResponse {
+    ok: boolean;
+}
+
+export interface IAuthSuccessResponse {
+    ok: true;
+    access_token: string;
+    team_id: string;
+    team_name: string;
+    app_id: string;
+    token_type: string;
+    // Documentation is inconsistent on this. This is the right name.
+    app_user_id: string;
+    // There are more properties. To be added.
+}
+
+export function isAuthSuccessResponse(json: Object): json is IAuthSuccessResponse {
+    return (json as IAuthResponse).ok;
+}

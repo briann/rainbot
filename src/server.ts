@@ -8,10 +8,11 @@ import * as logger from "koa-logger";
 import { GCPDatastoreSecretStore } from "./secrets/gcpDatastoreSecretStore";
 import SlackHandlers from "./slackHandlers";
 import { EventEmitter } from "events";
-import { registerListeners } from "./slackEventListeners";
+import { registerListeners as registerSlackListeners } from "./slackEventListeners";
 import { WebClient } from "@slack/client";
 import { GmapsDarkSkyWeatherService } from "./weatherService";
 import IndexHandler from "./indexHandler";
+import { DataEventListener } from "./datastoreEventListeners";
 
 async function main() {
     const ENV = process.env.NODE_ENV || "development";
@@ -39,15 +40,18 @@ async function main() {
     app.use(bodyParser());
     app.use(views(path.join(__dirname, '/views'), { extension: 'ejs' }));
 
-    // Set up Slack event processing.
+    // Set up event processing.
     const eventEmitter = new EventEmitter();
-    registerListeners(eventEmitter, slackClient, weatherService);
+    const dataEventListener = new DataEventListener(gcpDatastore);
+    registerSlackListeners(eventEmitter, slackClient, weatherService);
+    eventEmitter.on("slack:authed-xoxa-token", dataEventListener.onAuthedXoxaToken);
 
     // Set up routes.
     const router = new Router();
     const slackHandlers = new SlackHandlers(secretStore, eventEmitter);
     router.get("/", new IndexHandler(secretStore).handler);
     router.post("/slack-events", slackHandlers.eventApiPostHandler);
+    router.get("/slack-oauth", slackHandlers.authHandler);
     app.use(router.routes());
 
     // Start listening.

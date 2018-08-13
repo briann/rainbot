@@ -8,15 +8,49 @@ import {
     isEventRateLimitRequest,
     isEventWrapper,
     isMessageEvent,
-    IEventMetadata
+    IEventMetadata,
+    isAuthSuccessResponse
 } from "./apis/slack";
 import SlackError from "./slackError";
 import { EventEmitter } from "events";
+import fetch from "node-fetch";
+import { URLSearchParams } from "url";
 
 const REPLAY_ATTACK_THRESHOLD_MS = 5 * 60 * 1000;
+const SLACK_OAUTH_ACCESS_URL = "https://slack.com/api/oauth.access";
 
 export default class SlackHandlers {
     constructor(private secretStore: ISecretStore, private eventEmitter: EventEmitter) {}
+
+    public authHandler = async (context: IRouterContext) => {
+        const redirectUri = await this.secretStore.getSecret("SlackRedirectUri");
+        const slackClientIdentifier = await this.secretStore.getSecret("SlackClientIdentifier");
+        const slackClientSecret = await this.secretStore.getSecret("SlackClientSecret");
+        const code = context.request.query["code"];
+        const params = new URLSearchParams();
+        params.append("client_id", slackClientIdentifier);
+        params.append("client_secret", slackClientSecret);
+        params.append("code", code);
+        params.append("redirect_uri", redirectUri);
+        const authResponse = await fetch(SLACK_OAUTH_ACCESS_URL, {
+            method: "POST",
+            body: params
+        });
+        const authResult = await authResponse.json();
+        if (isAuthSuccessResponse(authResult)) {
+            const xoxaToken = authResult.access_token;
+            setImmediate(() => {
+                this.eventEmitter.emit("slack:authed-xoxa-token", {
+                    teamId: authResult.team_id,
+                    token: xoxaToken
+                });
+            });
+        } else {
+            console.log(authResult);
+            throw new SlackError("Unable to complete OAuth");
+        }
+        context.response.status = 200;
+    }
 
     public eventApiPostHandler = async (context: IRouterContext) => {
         const isValidRequest = await this.isValidRequestFromSlack(context);
