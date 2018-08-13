@@ -34,9 +34,9 @@ class MessageAppHomeListener extends SlackEventListener {
                     && forecast.hourly.summary) {
                 const location = geocode.results[0].formatted_address;
                 const temp = Math.floor(currently.temperature);
-                const message = `Currently in *${location}*, it is *${currently.summary}* `
-                        + `with a temperature of *${temp}°F*. \n`
-                        + `${forecast.hourly.summary}`;
+                const message = `Currently in *${location}*\n`
+                        + `> *${currently.summary}* with a temperature of *${temp}°F*.\n`
+                        + `> ${forecast.hourly.summary}`;
                 await this.slackClient.chat.postMessage({
                     channel: event.channel,
                     text: message
