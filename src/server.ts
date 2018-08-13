@@ -21,8 +21,7 @@ async function main() {
         namespace: process.env.GCP_DATASTORE_NAMESPACE || ENV
     });
     const secretStore = new GCPDatastoreSecretStore(gcpDatastore);
-    const slackToken = await secretStore.getSecret("SlackTestTeamToken");
-    const slackClient = new WebClient(slackToken);
+    const slackClient = new WebClient();
     const weatherService = new GmapsDarkSkyWeatherService(secretStore);
 
     // Init & config server.
@@ -43,7 +42,8 @@ async function main() {
     // Set up event processing.
     const eventEmitter = new EventEmitter();
     const dataEventListener = new DataEventListener(gcpDatastore);
-    registerSlackListeners(eventEmitter, slackClient, weatherService);
+    // TODO: Clean this up - bad code smells passing in deps like this.
+    registerSlackListeners(eventEmitter, slackClient, weatherService, gcpDatastore);
     eventEmitter.on("slack:authed-xoxa-token", dataEventListener.onAuthedXoxaToken);
 
     // Set up routes.
