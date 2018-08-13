@@ -11,6 +11,7 @@ import { EventEmitter } from "events";
 import { registerListeners } from "./slackEventListeners";
 import { WebClient } from "@slack/client";
 import { GmapsDarkSkyWeatherService } from "./weatherService";
+import IndexHandler from "./indexHandler";
 
 async function main() {
     const ENV = process.env.NODE_ENV || "development";
@@ -45,9 +46,7 @@ async function main() {
     // Set up routes.
     const router = new Router();
     const slackHandlers = new SlackHandlers(secretStore, eventEmitter);
-    router.get("/", async (ctx) => {
-        await ctx.render("index");
-    });
+    router.get("/", new IndexHandler(secretStore).handler);
     router.post("/slack-events", slackHandlers.eventApiPostHandler);
     app.use(router.routes());
 
